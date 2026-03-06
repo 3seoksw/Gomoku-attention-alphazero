@@ -4,7 +4,7 @@ from typing import Optional
 
 from env.board import Board
 from env.gomoku import Gomoku
-from env.player import HumanPlayer
+from agents.player import HumanPlayer
 
 BOARD_BG = (205, 155, 75)
 GRID_LINE = (70, 40, 20)
