@@ -1,6 +1,5 @@
 from env.board import Board
-from agents.player import Player, RandomPlayer, AgentPlayer
-from agents.mcts_agent import MCTSAgent
+from agents.player import Player, RandomPlayer, Agent
 
 
 class Gomoku:
@@ -20,7 +19,7 @@ class Gomoku:
 
     def start_play(
         self,
-        agent: MCTSAgent,
+        agent: Agent,
         random_player: RandomPlayer,
         start_player: int = 1,
     ):
@@ -43,7 +42,7 @@ class Gomoku:
 
     def start_self_play(
         self,
-        player: AgentPlayer,
+        player: Agent,
         start_player: int = 1,
         is_shown: bool = False,
         temp: float = 1e-3,
