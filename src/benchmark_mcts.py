@@ -2,8 +2,8 @@ import argparse
 import time
 from env.board import Board
 from env.gomoku import Gomoku
-from agents.player import RandomPlayer
-from agents.mcts_agent import MCTSAgent
+from agents.player import RandomPlayer, Agent
+from mcts.evaluators import RandomEvaluator
 
 
 def run_benchmark(
@@ -24,7 +24,9 @@ def run_benchmark(
         board = Board(board_size, n_in_a_row)
         game = Gomoku(board)
 
-        agent = MCTSAgent(n_simulations=n_simulations, seed=i)
+        # agent = MCTSAgent(n_simulations=n_simulations, seed=i)
+        mcts_evaluator = RandomEvaluator(i)
+        agent = Agent(mcts_evaluator)
         random = RandomPlayer(seed=i * 100)
 
         # Alternate who goes first
@@ -96,6 +98,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     for sims in args.sims:
-        print(f"\nRunning: {sims} simulations × {args.games} games...")
+        print(f"\nRunning: {sims} simulations X {args.games} games...")
         results = run_benchmark(sims, args.games, args.board_size, args.n_in_a_row)
         print_results(results)
