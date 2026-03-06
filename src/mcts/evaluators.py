@@ -2,6 +2,7 @@ import numpy as np
 from typing import Callable, Optional
 from abc import ABC, abstractmethod
 from env.board import Board
+from models.base_model import BaseModel
 
 """
 Evaluator class interface (signature)
@@ -57,3 +58,11 @@ class RandomEvaluator(BaseEvaluator):
             action_prior_pairs[move] = prior
         value = self._rollout(board)
         return action_prior_pairs, value
+
+
+class ModelEvaluator(BaseEvaluator):
+    def __init__(self, model: BaseModel):
+        self.model = model
+
+    def __call__(self, board: Board) -> tuple[dict[int, float], float]:
+        return self.model.predict(board)
