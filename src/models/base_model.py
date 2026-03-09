@@ -27,6 +27,7 @@ class BaseModel(nn.Module, ABC):
             `policy`: `torch.Tensor` (batch_size, board_size * board_size)
             `value`: `torch.Tensor` (batch, 1)
         """
+        pass
 
     def predict(self, board: Board) -> tuple[dict[int, float], float]:
         self.eval()
