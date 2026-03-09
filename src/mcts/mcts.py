@@ -70,7 +70,7 @@ class MCTSNode:
 
         for action, child in self.children.items():
             ucb = c_puct * child.prior * sqrt_parent / (1 + child.n_visits)
-            ucb += child.Q
+            ucb -= child.Q
             if ucb > best_ucb:
                 best_ucb = ucb
                 best_action = action
