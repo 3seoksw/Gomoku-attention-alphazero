@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from env.board import Board
 from mcts.mcts import MCTS
 from mcts.evaluators import PolicyValueFn
-from typing import Optional, Union
+from typing import Optional
 
 
 class Player(ABC):
@@ -15,7 +15,7 @@ class Player(ABC):
         self.player_id = player_id
 
     @abstractmethod
-    def get_action(self, board: Board) -> Union[int, tuple[int, np.ndarray]]:
+    def get_action(self, board: Board) -> int | tuple[int, np.ndarray]:
         pass
 
 
@@ -59,15 +59,13 @@ class Agent(Player):
         self.player_id = player_id
 
     def get_action(
-        self, board: Board, tau: Optional[float] = None, return_policy: bool = False
-    ):
+        self, board: Board, tau: Optional[float] = None, add_noise: bool = True
+    ) -> tuple[int, np.ndarray]:
         if tau is None:
             tau = self.tau
-        action, policy = self.mcts.search(board, tau=tau)
-        if return_policy:
-            return action, policy
+        action, policy = self.mcts.search(board, tau, add_noise)
 
-        return action
+        return action, policy
 
 
 class HumanPlayer(Player):
