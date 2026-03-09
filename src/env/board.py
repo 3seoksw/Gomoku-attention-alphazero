@@ -66,7 +66,7 @@ class Board:
 
     def move_to_location(self, move: int) -> tuple[int, int]:
         """
-        If given a 3 x 3 board, the board i!s as such:
+        If given a 3 x 3 board, the board is as such:
         0 1 2
         3 4 5
         6 7 8
