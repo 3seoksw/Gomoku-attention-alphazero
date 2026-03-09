@@ -109,13 +109,14 @@ class MCTS:
     def _terminal_value(self, board: Board, winner: int) -> float:
         """
         Return a value from current player's perspective at a terminal state.
+        After the winning move (action), current player becomes a loser.
         """
         if winner == -1:
             return 0.0
         if winner != board.get_current_player():
-            return 1.0
-        else:
             return -1.0
+        else:
+            return 1.0
 
     def _simulate(self, board: Board):
         """
