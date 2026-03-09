@@ -28,13 +28,11 @@ class PolicyValueModel(BaseModel):
         n_channels: int = 4,
         n_dim: int = 128,
         n_blocks: int = 5,
-        lr: float = 1e-3,
-        l2_norm: float = 1e-4,
     ):
         super().__init__(board_size, n_channels)
 
         self.conv_block1 = nn.Sequential(
-            nn.Conv1d(n_channels, n_dim, kernel_size=3, padding=1),
+            nn.Conv2d(n_channels, n_dim, kernel_size=3, padding=1),
             nn.BatchNorm2d(n_dim),
             nn.ReLU(),
         )
@@ -46,7 +44,7 @@ class PolicyValueModel(BaseModel):
         # Policy Head
         self.policy_conv = nn.Sequential(
             nn.Conv2d(n_dim, 2, kernel_size=1, bias=False),
-            nn.BatchNorm2d(n_dim),
+            nn.BatchNorm2d(2),
             nn.ReLU(),
         )
         self.policy_linear = nn.Linear(2 * board_size * board_size, self.action_space)
@@ -62,13 +60,6 @@ class PolicyValueModel(BaseModel):
             nn.ReLU(),
             nn.Linear(2 * n_dim, 1),
             nn.Tanh(),
-        )
-
-        # Optimizer
-        self.optimizer = torch.optim.Adam(
-            self.parameters(),
-            lr=lr,
-            weight_decay=l2_norm,
         )
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
