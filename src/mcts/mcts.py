@@ -190,6 +190,9 @@ class MCTS:
         Args:
             `board`: `Board`
             `tau`: `float` = 1.0 (temperature argument which controls action selection)
+                if `tau` approx to 0: greedy selection
+                elif `tau` approx to 1: proportional selection based on the visit counts
+                elif `tau` approx to inf: uniform
             `add_noise`: `bool` = False (Dirichlet noise added to priors of nodes)
 
         Returns:
