@@ -15,7 +15,12 @@ class Player(ABC):
         self.player_id = player_id
 
     @abstractmethod
-    def get_action(self, board: Board) -> int | tuple[int, np.ndarray]:
+    def get_action(
+        self,
+        board: Board,
+        tau: Optional[float] = None,
+        add_noise: Optional[bool] = False,
+    ) -> tuple[int, np.ndarray]:
         pass
 
 
@@ -25,9 +30,11 @@ class RandomPlayer(Player):
         self.player_name = player_name
         self.rng = np.random.default_rng(seed)
 
-    def get_action(self, board: Board) -> int:
+    def get_action(
+        self, board: Board, tau=None, add_noise=None
+    ) -> tuple[int, np.ndarray]:
         legal_moves = board.get_legal_moves()
-        return self.rng.choice(legal_moves)
+        return self.rng.choice(legal_moves), np.array(legal_moves)
 
 
 class Agent(Player):
@@ -59,7 +66,10 @@ class Agent(Player):
         self.player_id = player_id
 
     def get_action(
-        self, board: Board, tau: Optional[float] = None, add_noise: bool = True
+        self,
+        board: Board,
+        tau: Optional[float] = None,
+        add_noise: Optional[bool] = True,
     ) -> tuple[int, np.ndarray]:
         if tau is None:
             tau = self.tau
@@ -83,5 +93,5 @@ class HumanPlayer(Player):
             except (ValueError, IndexError):
                 print("\tInvalid input. Enter row,col (e.g., 3,4).")
 
-    def get_action(self, board: Board):
-        return self.input_retrieve(board)
+    def get_action(self, board: Board, tau=None, add_noise=None):
+        return self.input_retrieve(board), np.array([])
