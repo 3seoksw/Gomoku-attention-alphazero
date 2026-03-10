@@ -65,19 +65,20 @@ class MCTSNode:
         """
         sqrt_parent = np.sqrt(self.n_visits + 1e-8)
         best_ucb = -float("inf")
-        best_action = -1
-        best_child = None
 
+        best = []
         for action, child in self.children.items():
             ucb = c_puct * child.prior * sqrt_parent / (1 + child.n_visits)
-            ucb -= child.Q
+            ucb = -child.Q + ucb
+
             if ucb > best_ucb:
                 best_ucb = ucb
-                best_action = action
-                best_child = child
+                best = [(action, child)]
+            elif abs(ucb - best_ucb) <= 1e-12:
+                best.append((action, child))
 
-        assert best_child is not None
-        return best_action, best_child
+        idx = np.random.randint(len(best))
+        return best[idx]
 
     def backup(self, value: float):
         node = self
@@ -109,14 +110,12 @@ class MCTS:
     def _terminal_value(self, board: Board, winner: int) -> float:
         """
         Return a value from current player's perspective at a terminal state.
-        After the winning move (action), current player becomes a loser.
+        After the winning move (action), `_terminal_value()` is called,
+        and current player is always a loser.
         """
         if winner == -1:
             return 0.0
-        if winner != board.get_current_player():
-            return -1.0
-        else:
-            return 1.0
+        return -1.0
 
     def _simulate(self, board: Board):
         """
