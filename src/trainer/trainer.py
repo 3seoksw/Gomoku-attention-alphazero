@@ -178,7 +178,7 @@ class Trainer:
                         print(f"    policy_loss: {policy_loss:.3f}")
                         print(f"    value_loss: {value_loss:.3f}")
 
-            if i % self.save_every == 0:
+            if i % self.save_every == 0 and i != 0:
                 torch.save(
                     self.model.state_dict(),
                     f"{self.checkpoint_dir}/model_ep{i}_{self.elo}.pth",
