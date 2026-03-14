@@ -1,10 +1,9 @@
 import sys
 import pygame
-from typing import Optional
-
 from env.board import Board
 from env.gomoku import Gomoku
-from agents.player import HumanPlayer
+from agents.player import Agent, RandomPlayer
+from mcts.evaluators import RandomEvaluator
 
 BOARD_BG = (205, 155, 75)
 GRID_LINE = (70, 40, 20)
@@ -25,7 +24,7 @@ PLAYER_SYMBOL = {1: "X", 2: "O"}
 
 class GomokuGUI:
     """
-    Pygame GUI for Gomoku — Human vs Human.
+    Pygame GUI for Gomoku — MCTS vs Random.
 
     Args:
         board_size (int): number of lines on each side
@@ -40,11 +39,16 @@ class GomokuGUI:
         n_in_a_row: int = 5,
         cell_size: int = 60,
         start_player: int = 1,
+        player2_kind: str = "random",
+        player1_sims: int = 10,
+        player2_sims: int = 100,
+        move_delay_ms: int = 600,
     ):
         self.board_size = board_size
         self.n_in_a_row = n_in_a_row
         self.cell_size = cell_size
         self.start_player = start_player
+        self.player2_kind = player2_kind
 
         self.board_px = (board_size - 1) * cell_size
         self.window_w = self.board_px + 2 * MARGIN + SIDEBAR_W
@@ -54,14 +58,29 @@ class GomokuGUI:
         self.board = Board(board_size, n_in_a_row, start_player)
         self.game = Gomoku(self.board)
 
-        self.player1 = HumanPlayer(player_name="Player 1")
-        self.player2 = HumanPlayer(player_name="Player 2")
+        self.player1 = Agent(
+            evaluator=RandomEvaluator(seed=0),
+            n_simulations=player1_sims,
+            player_name=f"MCTS-{player1_sims}",
+        )
+        if player2_kind == "random":
+            self.player2 = RandomPlayer(player_name="Random", seed=1)
+        elif player2_kind == "mcts":
+            self.player2 = Agent(
+                evaluator=RandomEvaluator(seed=1),
+                n_simulations=player2_sims,
+                player_name=f"MCTS-{player2_sims}",
+            )
+        else:
+            raise ValueError("player2_kind must be 'random' or 'mcts'")
         self.game.assign_players(self.player1, self.player2)
         self.players = {1: self.player1, 2: self.player2}
 
         self.game_over = False
         self.winner = -1
         self.status_msg = self._turn_message()
+        self.last_step_ms = 0
+        self.move_delay_ms = move_delay_ms
 
         pygame.init()
         pygame.display.set_caption("Gomoku")
@@ -73,6 +92,7 @@ class GomokuGUI:
     def run(self):
         while True:
             self._handle_events()
+            self._maybe_play_ai_turn()
             self._draw()
             self.clock.tick(60)
 
@@ -89,21 +109,26 @@ class GomokuGUI:
                     pygame.quit()
                     sys.exit()
 
-            if event.type == pygame.MOUSEBUTTONDOWN and not self.game_over:
-                move = self._mouse_coord_to_move(event.pos)
-                if move is not None and move in self.board.availables:
-                    self._apply_move(move)
+    def _maybe_play_ai_turn(self):
+        if self.game_over:
+            return
 
-    def _mouse_coord_to_move(self, pos: tuple[int, int]) -> Optional[int]:
-        x, y = pos
-        col = round((x - MARGIN) / self.cell_size)
-        row = round((y - MARGIN) / self.cell_size)
-        if 0 <= row < self.board_size and 0 <= col < self.board_size:
-            return row * self.board_size + col
-        return None
+        now = pygame.time.get_ticks()
+        if now - self.last_step_ms < self.move_delay_ms:
+            return
 
-    def _apply_move(self, move: int):
+        current_player_id = self.board.get_current_player()
+        current_player = self.players[current_player_id]
+        if isinstance(current_player, RandomPlayer):
+            move = current_player.get_action(self.board)
+        else:
+            move, _ = current_player.get_action(self.board, add_noise=False)
+
         self.board.play_move(move)
+        for player in self.players.values():
+            if isinstance(player, Agent):
+                player.mcts.update(move)
+
         is_ended, winner = self.board.is_game_end()
         if is_ended:
             self.game_over = True
@@ -114,12 +139,17 @@ class GomokuGUI:
                 self.status_msg = f"{self.players[winner].player_name} wins!"
         else:
             self.status_msg = self._turn_message()
+        self.last_step_ms = now
 
     def _restart(self):
         self.board.init_board(self.start_player)
+        for player in self.players.values():
+            if isinstance(player, Agent):
+                player.reset()
         self.game_over = False
         self.winner = -1
         self.status_msg = self._turn_message()
+        self.last_step_ms = 0
 
     def _draw(self):
         self.screen.fill(BOARD_BG)
@@ -221,7 +251,6 @@ class GomokuGUI:
 
         y = divider(y + 10, gap=10)
         y = row("Controls:", y, self.font_sm, UI_ACCENT)
-        y = row("Click - place", y, self.font_sm, UI_TEXT)
         y = row("R - restart", y, self.font_sm, UI_TEXT)
         y = row("Q - quit", y, self.font_sm, UI_TEXT)
 
@@ -253,5 +282,18 @@ def play_pygame(
     n_in_a_row: int = 5,
     cell_size: int = 60,
     start_player: int = 1,
+    player2_kind: str = "random",
+    player1_sims: int = 10,
+    player2_sims: int = 100,
+    move_delay_ms: int = 600,
 ):
-    GomokuGUI(board_size, n_in_a_row, cell_size, start_player).run()
+    GomokuGUI(
+        board_size,
+        n_in_a_row,
+        cell_size,
+        start_player,
+        "mcts",
+        player1_sims,
+        player2_sims,
+        move_delay_ms,
+    ).run()
