@@ -51,6 +51,8 @@ class Board:
         self.board_state = np.zeros(
             (4, self.board_size, self.board_size), dtype=np.float32
         )
+        if start_player == self.players[0]:
+            self.board_state[3, :, :] = 1.0
 
     def reset(self, start_player: int = 1):
         self.board[:] = 0
