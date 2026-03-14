@@ -68,8 +68,8 @@ class MCTSNode:
 
         best = []
         for action, child in self.children.items():
-            ucb = c_puct * child.prior * sqrt_parent / (1 + child.n_visits)
-            ucb = -child.Q + ucb
+            exploration = c_puct * child.prior * sqrt_parent / (1 + child.n_visits)
+            ucb = -child.Q + exploration
 
             if ucb > best_ucb:
                 best_ucb = ucb
@@ -143,26 +143,17 @@ class MCTS:
         # Backup
         node.backup(value)
 
-    def _add_dirichlet_noise(
-        self, action_prior_pairs: dict[int, float]
-    ) -> dict[int, float]:
-        actions = list(action_prior_pairs.keys())
-
+    def _add_dirichlet_noise_to_root(self):
+        actions = list(self.root.children.keys())
         if not actions:
-            return action_prior_pairs
+            return
 
         noises = np.random.dirichlet([self.dirichlet_alpha] * len(actions))
         eps = self.dirichlet_epsilon
-        noised_priors = {
-            a: (1 - eps) * action_prior_pairs[a] + eps * n
-            for a, n in zip(actions, noises)
-        }
 
-        total_priors = sum(noised_priors.values())
-        if total_priors > 0:
-            noised_priors = {a: p / total_priors for a, p in noised_priors.items()}
-
-        return noised_priors
+        for a, n in zip(actions, noises):
+            child = self.root.children[a]
+            child.prior = (1 - eps) * child.prior + eps * n
 
     def reset(self):
         self.root = MCTSNode(parent=None, prior=1.0)
@@ -201,9 +192,9 @@ class MCTS:
         """
         if self.root.is_leaf():
             action_prior_pairs, _ = self.policy_value_fn(board)
-            if add_noise:
-                action_prior_pairs = self._add_dirichlet_noise(action_prior_pairs)
             self.root.expand(action_prior_pairs)
+        if add_noise:
+            action_prior_pairs = self._add_dirichlet_noise_to_root()
 
         # Simulations on a cloned board, then update the tree
         for _ in range(self.n_simulations):
