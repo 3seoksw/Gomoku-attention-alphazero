@@ -166,8 +166,6 @@ class Trainer:
     def fit(self, n_episodes: int, n_evals: int = 50, verbose: bool = False):
         for i in range(n_episodes):
             move_counts = self.start_self_play()
-            if verbose:
-                print(f" [Episode {i}]  {move_counts} moves")
 
             if len(self.replay_buffer) >= self.replay_buffer.batch_size * 5:
                 policy_loss, value_loss = self.train()
@@ -188,7 +186,7 @@ class Trainer:
                 if verbose:
                     print(f"\t ep{i}-Model saved")
 
-            if i % self.eval_every == 0:
+            if i % self.eval_every == 0 and i != 0:
                 wins, losses, draws = self.evaluate(n_evals)
                 win_rate = compute_win_rate(wins, losses, draws)
 

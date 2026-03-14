@@ -23,8 +23,10 @@ def main():
         lr=1e-4,
         n_simulations=200,
         log_dir=f"runs/{time}",
+        log_every=20,
+        eval_every=50,
     )
-    trainer.fit(n_episodes=100, n_evals=10, verbose=True)
+    trainer.fit(n_episodes=3000, n_evals=30, verbose=True)
 
 
 if __name__ == "__main__":
