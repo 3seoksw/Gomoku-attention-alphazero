@@ -4,3 +4,4 @@ tqdm
 hydra-core
 gymnasium==1.2.3
 pygame
+tensorboard
