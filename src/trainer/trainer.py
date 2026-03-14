@@ -173,10 +173,10 @@ class Trainer:
                     self.writer.add_scalar("train/loss_policy", policy_loss, i + 1)
                     self.writer.add_scalar("train/loss_value", value_loss, i + 1)
                     self.writer.add_scalar("train/game_length", move_counts, i + 1)
-                if verbose:
-                    # print(f" [Episode {i}]")
-                    print(f"  policy_loss: {policy_loss:.3f}")
-                    print(f"  value_loss: {value_loss:.3f}")
+                    if verbose:
+                        print(f" [Episode {i}]")
+                        print(f"    policy_loss: {policy_loss:.3f}")
+                        print(f"    value_loss: {value_loss:.3f}")
 
             if i % self.save_every == 0:
                 torch.save(
@@ -191,7 +191,8 @@ class Trainer:
                 win_rate = compute_win_rate(wins, losses, draws)
 
                 self.writer.add_scalar("evaluation/win_rate", win_rate, i + 1)
-                print(f"   Eval | Win Rate {win_rate:.2f}")
+                print(f"\t Eval | W {wins} L {losses} D {draws} |")
+                print(f"\t Win Rate {win_rate:.2f} |")
 
                 self.elo, self.best_elo = compute_ELO_rating(
                     wins, losses, draws, self.elo, self.best_elo
