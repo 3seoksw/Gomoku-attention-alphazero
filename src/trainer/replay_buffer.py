@@ -4,9 +4,12 @@ from collections import deque
 
 
 class ReplayBuffer:
-    def __init__(self, capacity: int = 10000, batch_size: int = 64):
+    def __init__(
+        self, capacity: int = 10000, batch_size: int = 64, device: str = "cuda"
+    ):
         self.buffer = deque(maxlen=capacity)
         self.batch_size = batch_size
+        self.device = device
 
     def __len__(self) -> int:
         return len(self.buffer)
@@ -18,7 +21,7 @@ class ReplayBuffer:
         batch = random.sample(self.buffer, self.batch_size)
         state, policy, value = zip(*batch)
         return (
-            torch.stack(state),
-            torch.stack(policy),
-            torch.tensor(value, dtype=torch.float32),
+            torch.stack(state).to(self.device),
+            torch.stack(policy).to(self.device),
+            torch.tensor(value, dtype=torch.float32).to(self.device),
         )

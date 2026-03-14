@@ -37,7 +37,7 @@ class RandomEvaluator(BaseEvaluator):
     def _rollout(self, board: Board) -> float:
         """Random simulation"""
         b = board.clone()
-        player = b.current_player
+        player = b.get_current_player()
         while True:
             is_end, winner = b.is_game_end()
             if is_end:
@@ -61,8 +61,9 @@ class RandomEvaluator(BaseEvaluator):
 
 
 class ModelEvaluator(BaseEvaluator):
-    def __init__(self, model: BaseModel):
+    def __init__(self, model: BaseModel, device: str = "cuda"):
         self.model = model
+        self.model.device = device
 
     def __call__(self, board: Board) -> tuple[dict[int, float], float]:
         return self.model.predict(board)

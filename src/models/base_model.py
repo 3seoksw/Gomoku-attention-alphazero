@@ -10,15 +10,12 @@ class BaseModel(nn.Module, ABC):
     `forward(x)` method outputs policy for all action space and state value in [-1, 1] range.
     """
 
-    def __init__(self, board_size: int = 9, n_channels: int = 4):
+    def __init__(self, board_size: int = 9, n_channels: int = 4, device: str = "cuda"):
         super().__init__()
         self.board_size = board_size
         self.n_channels = n_channels
         self.action_space = board_size * board_size
-        if torch.cuda.is_available():
-            self.device = "cuda"
-        else:
-            self.device = "cpu"
+        self.device = device
 
     @abstractmethod
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
