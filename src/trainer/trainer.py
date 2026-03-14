@@ -92,7 +92,7 @@ class Trainer:
             current_player = self.board.get_current_player()
             action, policy = self.agent.get_action(self.board, tau, True)
 
-            states.append(state)
+            states.append(state.copy())
             policies.append(policy)
             players.append(current_player)
 
@@ -145,9 +145,6 @@ class Trainer:
     def train(self):
         self.model.train()
         state, policy, value = self.replay_buffer.sample()
-        state = state.to(self.device)
-        policy = policy.to(self.device)
-        value = value.to(self.device)
 
         pred_policy, pred_value = self.model(state)
         pred_value = pred_value.squeeze(1)
@@ -169,6 +166,8 @@ class Trainer:
     def fit(self, n_episodes: int, n_evals: int = 50, verbose: bool = False):
         for i in range(n_episodes):
             move_counts = self.start_self_play()
+            if verbose:
+                print(f" [Episode {i}]  {move_counts} moves")
 
             if len(self.replay_buffer) >= self.replay_buffer.batch_size * 5:
                 policy_loss, value_loss = self.train()
@@ -177,7 +176,7 @@ class Trainer:
                     self.writer.add_scalar("train/loss_value", value_loss, i + 1)
                     self.writer.add_scalar("train/game_length", move_counts, i + 1)
                 if verbose:
-                    print(f" [Episode {i}]")
+                    # print(f" [Episode {i}]")
                     print(f"  policy_loss: {policy_loss:.3f}")
                     print(f"  value_loss: {value_loss:.3f}")
 
@@ -186,13 +185,15 @@ class Trainer:
                     self.model.state_dict(),
                     f"{self.checkpoint_dir}/model_ep{i}_{self.elo}.pth",
                 )
+                if verbose:
+                    print(f"\t ep{i}-Model saved")
 
             if i % self.eval_every == 0:
                 wins, losses, draws = self.evaluate(n_evals)
                 win_rate = compute_win_rate(wins, losses, draws)
 
                 self.writer.add_scalar("evaluation/win_rate", win_rate, i + 1)
-                print(f"Episode {i + 1} | Win Rate {win_rate:.2f}")
+                print(f"   Eval | Win Rate {win_rate:.2f}")
 
                 self.elo, self.best_elo = compute_ELO_rating(
                     wins, losses, draws, self.elo, self.best_elo

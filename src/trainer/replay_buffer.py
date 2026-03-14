@@ -15,7 +15,13 @@ class ReplayBuffer:
         return len(self.buffer)
 
     def push(self, state, policy, value):
-        self.buffer.append((state, policy, value))
+        self.buffer.append(
+            (
+                torch.from_numpy(state).float(),
+                torch.from_numpy(policy).float(),
+                torch.tensor(value, dtype=torch.float32),
+            )
+        )
 
     def sample(self) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         batch = random.sample(self.buffer, self.batch_size)
