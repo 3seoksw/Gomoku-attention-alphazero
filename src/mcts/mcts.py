@@ -107,7 +107,7 @@ class MCTS:
         self.dirichlet_epsilon = dirichlet_epsilon
         self.root = MCTSNode(parent=None, prior=1.0)
 
-    def _terminal_value(self, board: Board, winner: int) -> float:
+    def _terminal_value(self, winner: int) -> float:
         """
         Return a value from current player's perspective at a terminal state.
         After the winning move (action), `_terminal_value()` is called,
@@ -133,7 +133,7 @@ class MCTS:
 
         is_end, winner = board.is_game_end()
         if is_end:
-            node.backup(self._terminal_value(board, winner))
+            node.backup(self._terminal_value(winner))
             return
 
         # Evaluate and expand
@@ -182,7 +182,7 @@ class MCTS:
             self.reset()
 
     def search(
-        self, board: Board, tau: float = 0.0, add_noise: bool = False
+        self, board: Board, tau: float = 0.0, add_noise: Optional[bool] = False
     ) -> tuple[int, np.ndarray]:
         """
         Runs MCTS simulations and returns an action and its policy (probability distribution).

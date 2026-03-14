@@ -41,7 +41,7 @@ class Agent(Player):
     def __init__(
         self,
         evaluator: PolicyValueFn,
-        tau: float = 0.0,
+        tau: float = 1.0,
         c_puct: float = 5.0,
         n_simulations: int = 500,
         dirichlet_alpha: float = 0.3,
@@ -68,7 +68,7 @@ class Agent(Player):
     def get_action(
         self,
         board: Board,
-        tau: Optional[float] = None,
+        tau: Optional[float] = 1.0,
         add_noise: Optional[bool] = True,
     ) -> tuple[int, np.ndarray]:
         if tau is None:
