@@ -194,7 +194,7 @@ class MCTS:
             action_prior_pairs, _ = self.policy_value_fn(board)
             self.root.expand(action_prior_pairs)
         if add_noise:
-            action_prior_pairs = self._add_dirichlet_noise_to_root()
+            self._add_dirichlet_noise_to_root()
 
         # Simulations on a cloned board, then update the tree
         for _ in range(self.n_simulations):
