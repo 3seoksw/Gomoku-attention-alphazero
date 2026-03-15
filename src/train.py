@@ -20,10 +20,10 @@ def main():
         model=model,
         name="alphazero",
         device=device,
-        lr=1e-4,
+        lr=3e-4,
         n_simulations=200,
         log_dir=f"runs/{time}",
-        log_every=20,
+        log_every=10,
         eval_every=50,
     )
     trainer.fit(n_episodes=3000, n_evals=30, verbose=True)

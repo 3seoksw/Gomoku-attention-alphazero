@@ -192,8 +192,9 @@ class Trainer:
                 win_rate = compute_win_rate(wins, losses, draws)
 
                 self.writer.add_scalar("evaluation/win_rate", win_rate, i + 1)
-                print(f"\t Eval | W {wins} L {losses} D {draws} |")
-                print(f"\t Win Rate {win_rate:.2f} |")
+                print(f" [Episode {i}] Eval")
+                print(f"    W_{wins}  L_{losses}  D_{draws} |")
+                print(f"    Win Rate {win_rate:.2f} |")
 
                 self.elo, self.best_elo = compute_ELO_rating(
                     wins, losses, draws, self.elo, self.best_elo
@@ -202,6 +203,7 @@ class Trainer:
                 self.writer.add_scalar("evaluation/best_elo", self.best_elo, i + 1)
 
                 if win_rate > 0.55:
+                    print(f" [Episode {i}] Baseline updated: {win_rate}")
                     self.best_win_rate = win_rate
                     self.best_model.load_state_dict(self.model.state_dict())
                     torch.save(
