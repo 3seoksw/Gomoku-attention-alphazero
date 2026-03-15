@@ -75,8 +75,8 @@ class Trainer:
         self.save_every = eval_every
         self.eval_every = eval_every
 
-    def start_self_play(self, tau_threshold: int = 15):
-        self.board.init_board()
+    def start_self_play(self, tau_threshold: int = 15, start_player: int = 1):
+        self.board.init_board(start_player)
         self.agent.reset()
 
         move_counts = 0
@@ -168,7 +168,8 @@ class Trainer:
 
     def fit(self, n_episodes: int, n_evals: int = 50, verbose: bool = False):
         for i in range(n_episodes):
-            move_counts = self.start_self_play()
+            start_player = 1 if i % 2 == 0 else 2
+            move_counts = self.start_self_play(start_player=start_player)
 
             if len(self.replay_buffer) >= self.replay_buffer.batch_size * 10:
                 policy_losses, value_losses = [], []
