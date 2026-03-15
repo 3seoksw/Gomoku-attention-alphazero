@@ -137,6 +137,7 @@ class Trainer:
             board.play_move(move)
             agent.mcts.update(move)
             best_agent.mcts.update(move)
+            assert agent.mcts.root != best_agent.mcts.root
 
             is_end, winner = board.is_game_end()
             if is_end:
@@ -186,7 +187,7 @@ class Trainer:
                 if verbose:
                     print(f"\t ep{i}-Model saved")
 
-            if i % self.eval_every == 0 and i != 0:
+            if i % self.eval_every == 0:
                 wins, losses, draws = self.evaluate(n_evals)
                 win_rate = compute_win_rate(wins, losses, draws)
 
@@ -207,7 +208,9 @@ class Trainer:
                         self.best_model.state_dict(),
                         f"{self.checkpoint_dir}/best_model.pth",
                     )
-                    self.best_model_evaluator = copy.deepcopy(self.model_evaluator)
+                    self.best_model_evaluator = ModelEvaluator(
+                        self.best_model, self.device
+                    )
                     self.best_agent = Agent(
                         evaluator=self.best_model_evaluator,
                         tau=0,
