@@ -20,6 +20,7 @@ class Trainer:
         lr: float = 1e-3,
         l2_norm: float = 1e-4,
         batch_size: int = 64,
+        n_trains_per_episode: int = 5,
         board_size: int = 9,
         n_in_a_row: int = 5,
         tau: float = 1.0,
@@ -34,6 +35,7 @@ class Trainer:
         self.device = device
         self.board = Board(board_size, n_in_a_row=n_in_a_row)
 
+        self.n_trains_per_episode = n_trains_per_episode
         self.model = model
         self.model.to(device)
         self.optimizer = torch.optim.Adam(
@@ -73,7 +75,7 @@ class Trainer:
         self.save_every = eval_every
         self.eval_every = eval_every
 
-    def start_self_play(self, tau_threshold: int = 30):
+    def start_self_play(self, tau_threshold: int = 15):
         self.board.init_board()
         self.agent.reset()
 
@@ -168,12 +170,20 @@ class Trainer:
         for i in range(n_episodes):
             move_counts = self.start_self_play()
 
-            if len(self.replay_buffer) >= self.replay_buffer.batch_size * 5:
-                policy_loss, value_loss = self.train()
+            if len(self.replay_buffer) >= self.replay_buffer.batch_size * 10:
+                policy_losses, value_losses = [], []
+                for _ in range(self.n_trains_per_episode):
+                    policy_loss, value_loss = self.train()
+                    policy_losses.append(policy_loss)
+                    value_losses.append(value_loss)
+
                 if i % self.log_every == 0:
-                    self.writer.add_scalar("train/loss_policy", policy_loss, i + 1)
-                    self.writer.add_scalar("train/loss_value", value_loss, i + 1)
-                    self.writer.add_scalar("train/game_length", move_counts, i + 1)
+                    step = i + 1
+                    policy_loss = np.mean(policy_losses)
+                    value_loss = np.mean(value_losses)
+                    self.writer.add_scalar("train/loss_policy", policy_loss, step)
+                    self.writer.add_scalar("train/loss_value", value_loss, step)
+                    self.writer.add_scalar("train/game_length", move_counts, step)
                     if verbose:
                         print(f" [Episode {i}]")
                         print(f"    policy_loss: {policy_loss:.3f}")
