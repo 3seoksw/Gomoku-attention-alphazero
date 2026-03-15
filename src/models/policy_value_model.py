@@ -27,7 +27,7 @@ class PolicyValueModel(BaseModel):
         board_size: int = 9,
         n_channels: int = 4,
         n_dim: int = 128,
-        n_blocks: int = 5,
+        n_blocks: int = 3,
     ):
         super().__init__(board_size, n_channels)
 
