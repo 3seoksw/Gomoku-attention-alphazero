@@ -26,7 +26,7 @@ def main():
         log_every=10,
         eval_every=50,
     )
-    trainer.fit(n_episodes=3000, n_evals=30, verbose=True)
+    trainer.fit(n_episodes=3000, n_evals=10, verbose=True)
 
 
 if __name__ == "__main__":
