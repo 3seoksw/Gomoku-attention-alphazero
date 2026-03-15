@@ -75,8 +75,8 @@ class Trainer:
         self.save_every = eval_every
         self.eval_every = eval_every
 
-    def start_self_play(self, tau_threshold: int = 15, start_player: int = 1):
-        self.board.init_board(start_player)
+    def start_self_play(self, tau_threshold: int = 15):
+        self.board.init_board()
         self.agent.reset()
 
         move_counts = 0
@@ -168,8 +168,7 @@ class Trainer:
 
     def fit(self, n_episodes: int, n_evals: int = 50, verbose: bool = False):
         for i in range(n_episodes):
-            start_player = 1 if i % 2 == 0 else 2
-            move_counts = self.start_self_play(start_player=start_player)
+            move_counts = self.start_self_play()
 
             if len(self.replay_buffer) >= self.replay_buffer.batch_size * 10:
                 policy_losses, value_losses = [], []
@@ -237,16 +236,18 @@ class Trainer:
             board = Board(self.board.board_size, self.board.n_in_a_row)
 
             if i % 2 == 0:
-                start_player = 1
+                winner = self.start_play(board, self.agent, self.best_agent, 1)
+                current_player_id = 1
             else:
-                start_player = 2
-            winner = self.start_play(board, self.agent, self.best_agent, start_player)
-            if winner == 1:
+                winner = self.start_play(board, self.best_agent, self.agent, 1)
+                current_player_id = 2
+
+            if winner == current_player_id:
                 wins += 1
-            elif winner == 2:
-                losses += 1
-            else:
+            elif winner == -1:
                 draws += 1
+            else:
+                losses += 1
 
         assert wins + losses + draws == n_evals
         return wins, losses, draws
