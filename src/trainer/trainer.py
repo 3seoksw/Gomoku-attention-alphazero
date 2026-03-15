@@ -131,15 +131,22 @@ class Trainer:
         best_agent.set_player_id(2)
 
         players = {1: agent, 2: best_agent}
+        # Add a little stochasticity for initial four moves
+        move_counts = 0
         while True:
+            if move_counts <= 3:
+                tau = 0.1
+            else:
+                tau = 0
             current_player_id = board.get_current_player()
             current_player = players[current_player_id]
-            move, _ = current_player.get_action(board, 0, False)
+            move, _ = current_player.get_action(board, tau, False)
 
             board.play_move(move)
             agent.mcts.update(move)
             best_agent.mcts.update(move)
             assert agent.mcts.root != best_agent.mcts.root
+            move_counts += 1
 
             is_end, winner = board.is_game_end()
             if is_end:
