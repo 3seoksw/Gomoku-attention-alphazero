@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
-from abc import ABC, abstractmethod
-from typing import overload
+from abc import ABC
 from env.board import Board
 
 
@@ -26,7 +25,8 @@ class BaseModel(nn.Module, ABC):
             x = torch.tensor(state, dtype=torch.float32)
             x = x.unsqueeze(0).to(self.device)
 
-            policy, value = self.forward(x)
+            output = self.forward(x)
+            policy, value = output[:2]
 
             legal_moves = board.get_legal_moves()
             mask = torch.zeros(self.action_space, device=self.device)
