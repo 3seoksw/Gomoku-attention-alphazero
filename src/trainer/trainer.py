@@ -6,6 +6,7 @@ import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from env.board import Board
 from models.base_model import BaseModel
+from models.attn_model import AttnPolicyValue
 from agents.player import Agent
 from mcts.evaluators import ModelEvaluator
 from trainer.replay_buffer import ReplayBuffer
@@ -15,7 +16,6 @@ class Trainer:
     def __init__(
         self,
         model: BaseModel,
-        name: str = "alphazero",
         device: str = "cuda",
         lr: float = 1e-3,
         l2_norm: float = 1e-4,
@@ -36,11 +36,19 @@ class Trainer:
         self.board = Board(board_size, n_in_a_row=n_in_a_row)
 
         self.n_trains_per_episode = n_trains_per_episode
+
+        if type(model) is AttnPolicyValue:
+            self.use_attn = True
+            name = "Attn AlphaZero"
+        else:
+            self.use_attn = False
+            name = "AlphaZero"
         self.model = model
         self.model.to(device)
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=lr, weight_decay=l2_norm
         )
+
         self.model_evaluator = ModelEvaluator(self.model, device)
         self.agent = Agent(
             evaluator=self.model_evaluator,
@@ -156,7 +164,10 @@ class Trainer:
         self.model.train()
         state, policy, value = self.replay_buffer.sample()
 
-        pred_policy, pred_value = self.model(state)
+        if self.use_attn:
+            pred_policy, pred_value, attn_weights = self.model(state)
+        else:
+            pred_policy, pred_value = self.model(state)
         pred_value = pred_value.squeeze(1)
 
         # Policy Loss: Cross-Entropy Loss
@@ -199,7 +210,7 @@ class Trainer:
             if i % self.save_every == 0 and i != 0:
                 torch.save(
                     self.model.state_dict(),
-                    f"{self.checkpoint_dir}/model_ep{i}_{self.elo}.pth",
+                    f"{self.checkpoint_dir}/model_ep{i}_{int(self.elo)}.pth",
                 )
                 if verbose:
                     print(f"\t ep{i}-Model saved")

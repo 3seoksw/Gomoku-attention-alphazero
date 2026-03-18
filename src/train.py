@@ -1,5 +1,6 @@
 import torch
 from models.policy_value_model import PolicyValueModel
+from models.attn_model import AttnPolicyValue
 from trainer.trainer import Trainer
 from datetime import datetime
 
@@ -14,11 +15,11 @@ def main():
     print(f" {device} loaded\n")
 
     model = PolicyValueModel()
+    model = AttnPolicyValue()
 
     time = datetime.now().strftime("%Y%m%d_%H%M%S")
     trainer = Trainer(
         model=model,
-        name="alphazero",
         device=device,
         lr=3e-4,
         n_simulations=200,
