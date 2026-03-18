@@ -178,7 +178,7 @@ class Trainer:
         value_loss = F.mse_loss(pred_value, value)
 
         self.optimizer.zero_grad()
-        total_loss = policy_loss + value_loss
+        total_loss = policy_loss + 2 * value_loss
         total_loss.backward()
         self.optimizer.step()
 
@@ -215,7 +215,7 @@ class Trainer:
                 if verbose:
                     print(f"\t ep{i}-Model saved")
 
-            if i % self.eval_every == 0:
+            if i % self.eval_every == 0 or i == n_episodes - 1:
                 wins, losses, draws = self.evaluate(n_evals)
                 win_rate = compute_win_rate(wins, losses, draws)
 
