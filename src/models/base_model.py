@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from abc import ABC, abstractmethod
+from typing import overload
 from env.board import Board
 
 
@@ -16,15 +17,6 @@ class BaseModel(nn.Module, ABC):
         self.n_channels = n_channels
         self.action_space = board_size * board_size
         self.device = device
-
-    @abstractmethod
-    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        """
-        Returns:
-            `policy`: `torch.Tensor` (batch_size, board_size * board_size)
-            `value`: `torch.Tensor` (batch, 1)
-        """
-        pass
 
     def predict(self, board: Board) -> tuple[dict[int, float], float]:
         self.eval()
