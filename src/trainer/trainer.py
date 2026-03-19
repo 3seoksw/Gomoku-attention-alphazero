@@ -7,6 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 from env.board import Board
 from models.base_model import BaseModel
 from models.attn_model import AttnPolicyValue
+from models.policy_value_model import PolicyValueModel
 from agents.player import Agent
 from mcts.evaluators import ModelEvaluator
 from trainer.replay_buffer import ReplayBuffer
@@ -31,6 +32,7 @@ class Trainer:
         log_dir: str = "runs",
         log_every: int = 20,
         eval_every: int = 100,
+        baseline_dir: str = "runs/alphazero/best_model.pth",
     ):
         self.device = device
         self.board = Board(board_size, n_in_a_row=n_in_a_row)
@@ -39,10 +41,13 @@ class Trainer:
 
         if type(model) is AttnPolicyValue:
             self.use_attn = True
-            name = "Attn AlphaZero"
+            self.eval_mode = "baseline"
+            name = "AttnAlphaZero"
         else:
             self.use_attn = False
+            self.eval_mode = "self"
             name = "AlphaZero"
+
         self.model = model
         self.model.to(device)
         self.optimizer = torch.optim.Adam(
@@ -58,6 +63,22 @@ class Trainer:
             dirichlet_alpha=dirichlet_alpha,
             dirichlet_epsilon=dirichlet_epsilon,
         )
+
+        if self.eval_mode == "baseline":
+            self.baseline_model = PolicyValueModel(board_size)
+            self.baseline_model.load_state_dict(
+                torch.load(baseline_dir, map_location=device)
+            )
+            self.baseline_model.to(device)
+            self.baseline_model.eval()
+            self.baseline_eval = ModelEvaluator(self.baseline_model, device)
+            self.baseline = Agent(
+                evaluator=self.baseline_eval,
+                tau=tau,
+                c_puct=c_puct,
+                n_simulations=n_simulations,
+            )
+            self.baseline_elo = 1500
 
         self.best_model = copy.deepcopy(self.model).to(device)
         self.best_model_evaluator = ModelEvaluator(self.best_model, device)
@@ -128,17 +149,17 @@ class Trainer:
         return move_counts
 
     def start_play(
-        self, board: Board, agent: Agent, best_agent: Agent, start_player: int = 1
+        self, board: Board, agent1: Agent, agent2: Agent, start_player: int = 1
     ):
         board.init_board(start_player)
 
-        agent.reset()
-        agent.set_player_id(1)
+        agent1.reset()
+        agent1.set_player_id(1)
 
-        best_agent.reset()
-        best_agent.set_player_id(2)
+        agent2.reset()
+        agent2.set_player_id(2)
 
-        players = {1: agent, 2: best_agent}
+        players = {1: agent1, 2: agent2}
         # Add a little stochasticity for initial four moves
         move_counts = 0
         while True:
@@ -151,9 +172,9 @@ class Trainer:
             move, _ = current_player.get_action(board, tau, False)
 
             board.play_move(move)
-            agent.mcts.update(move)
-            best_agent.mcts.update(move)
-            assert agent.mcts.root != best_agent.mcts.root
+            agent1.mcts.update(move)
+            agent2.mcts.update(move)
+            assert agent1.mcts.root != agent2.mcts.root
             move_counts += 1
 
             is_end, winner = board.is_game_end()
@@ -224,11 +245,17 @@ class Trainer:
                 print(f"    W_{wins}  L_{losses}  D_{draws} |")
                 print(f"    Win Rate {win_rate:.2f} |")
 
-                self.elo, self.best_elo = compute_ELO_rating(
-                    wins, losses, draws, self.elo, self.best_elo
-                )
-                self.writer.add_scalar("evaluation/elo", self.elo, i + 1)
-                self.writer.add_scalar("evaluation/best_elo", self.best_elo, i + 1)
+                if self.eval_mode == "self":
+                    self.elo, self.best_elo = compute_ELO_rating(
+                        wins, losses, draws, self.elo, self.best_elo
+                    )
+                    self.writer.add_scalar("evaluation/elo", self.elo, i + 1)
+                    self.writer.add_scalar("evaluation/best_elo", self.best_elo, i + 1)
+                else:
+                    self.elo = compute_relative_ELO_rating(
+                        wins, losses, draws, self.baseline_elo
+                    )
+                    self.writer.add_scalar("evaluation/elo", self.elo, i + 1)
 
                 if win_rate > 0.55:
                     print(f" [Episode {i}] Baseline updated: {win_rate}")
@@ -253,11 +280,16 @@ class Trainer:
         for i in range(n_evals):
             board = Board(self.board.board_size, self.board.n_in_a_row)
 
+            if self.eval_mode == "baseline":
+                opponent = self.baseline
+            else:
+                opponent = self.best_agent
+
             if i % 2 == 0:
-                winner = self.start_play(board, self.agent, self.best_agent, 1)
+                winner = self.start_play(board, self.agent, opponent, 1)
                 current_player_id = 1
             else:
-                winner = self.start_play(board, self.best_agent, self.agent, 1)
+                winner = self.start_play(board, opponent, self.agent, 1)
                 current_player_id = 2
 
             if winner == current_player_id:
@@ -302,3 +334,13 @@ def compute_ELO_rating(
     opp_r = opp_rating + k * (opp_s - opp_e)
 
     return float(r), float(opp_r)
+
+
+def compute_relative_ELO_rating(
+    wins: int, losses: int, draws: int, baseline_elo: float = 1500
+):
+    n_games = wins + losses + draws
+    s = (wins + 0.5 * draws) / n_games
+    s = np.clip(s, 1e-5, 1 - 1e-5)
+    delta = -400 * np.log10(1 / s - 1)
+    return baseline_elo + delta
