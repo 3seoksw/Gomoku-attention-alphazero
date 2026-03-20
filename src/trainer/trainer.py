@@ -4,6 +4,7 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
+from torch.optim.lr_scheduler import MultiStepLR
 from env.board import Board
 from models.base_model import BaseModel
 from models.attn_model import AttnPolicyValue
@@ -25,7 +26,7 @@ class Trainer:
         board_size: int = 9,
         n_in_a_row: int = 5,
         tau: float = 1.0,
-        c_puct: float = 5.0,
+        c_puct: float = 3.0,
         n_simulations: int = 400,
         dirichlet_alpha: float = 0.3,
         dirichlet_epsilon: float = 0.25,
@@ -53,6 +54,7 @@ class Trainer:
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=lr, weight_decay=l2_norm
         )
+        self.scheduler = MultiStepLR(self.optimizer, milestones=[2000, 4000], gamma=0.3)
 
         self.model_evaluator = ModelEvaluator(self.model, device)
         self.agent = Agent(
@@ -199,7 +201,7 @@ class Trainer:
         value_loss = F.mse_loss(pred_value, value)
 
         self.optimizer.zero_grad()
-        total_loss = policy_loss + 2 * value_loss
+        total_loss = policy_loss + value_loss
         total_loss.backward()
         self.optimizer.step()
 
@@ -215,6 +217,7 @@ class Trainer:
                     policy_loss, value_loss = self.train()
                     policy_losses.append(policy_loss)
                     value_losses.append(value_loss)
+                self.scheduler.step()
 
                 if i % self.log_every == 0:
                     step = i + 1
@@ -245,17 +248,16 @@ class Trainer:
                 print(f"    W_{wins}  L_{losses}  D_{draws} |")
                 print(f"    Win Rate {win_rate:.2f} |")
 
-                if self.eval_mode == "self":
-                    self.elo, self.best_elo = compute_ELO_rating(
-                        wins, losses, draws, self.elo, self.best_elo
-                    )
-                    self.writer.add_scalar("evaluation/elo", self.elo, i + 1)
-                    self.writer.add_scalar("evaluation/best_elo", self.best_elo, i + 1)
-                else:
+                self.elo, self.best_elo = compute_ELO_rating(
+                    wins, losses, draws, self.elo, self.best_elo
+                )
+                self.writer.add_scalar("evaluation/elo", self.elo, i + 1)
+                self.writer.add_scalar("evaluation/best_elo", self.best_elo, i + 1)
+                if self.eval_mode == "baseline":
                     self.elo = compute_relative_ELO_rating(
                         wins, losses, draws, self.baseline_elo
                     )
-                    self.writer.add_scalar("evaluation/elo", self.elo, i + 1)
+                    self.writer.add_scalar("evaluation/relative_elo", self.elo, i + 1)
 
                 if win_rate > 0.55:
                     print(f" [Episode {i}] Baseline updated: {win_rate}")

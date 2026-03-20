@@ -28,7 +28,7 @@ def main():
         eval_every=50,
         baseline_dir="runs/alphazero/best_model.pth",
     )
-    trainer.fit(n_episodes=5000, n_evals=20, verbose=True)
+    trainer.fit(n_episodes=5000, n_evals=40, verbose=True)
 
 
 if __name__ == "__main__":
