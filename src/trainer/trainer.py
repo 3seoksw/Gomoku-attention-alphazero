@@ -81,16 +81,16 @@ class Trainer:
                 n_simulations=n_simulations,
             )
             self.baseline_elo = 1500
-
-        self.best_model = copy.deepcopy(self.model).to(device)
-        self.best_model_evaluator = ModelEvaluator(self.best_model, device)
-        self.best_agent = Agent(
-            evaluator=self.best_model_evaluator,
-            tau=tau,
-            c_puct=c_puct,
-            n_simulations=n_simulations,
-        )
-        self.best_win_rate = 0
+        else:
+            self.best_model = copy.deepcopy(self.model).to(device)
+            self.best_model_evaluator = ModelEvaluator(self.best_model, device)
+            self.best_agent = Agent(
+                evaluator=self.best_model_evaluator,
+                tau=tau,
+                c_puct=c_puct,
+                n_simulations=n_simulations,
+            )
+            self.best_win_rate = 0
 
         self.elo = 1500
         self.best_elo = 1500
@@ -248,34 +248,34 @@ class Trainer:
                 print(f"    W_{wins}  L_{losses}  D_{draws} |")
                 print(f"    Win Rate {win_rate:.2f} |")
 
-                self.elo, self.best_elo = compute_ELO_rating(
-                    wins, losses, draws, self.elo, self.best_elo
-                )
-                self.writer.add_scalar("evaluation/elo", self.elo, i + 1)
-                self.writer.add_scalar("evaluation/best_elo", self.best_elo, i + 1)
                 if self.eval_mode == "baseline":
                     self.elo = compute_relative_ELO_rating(
                         wins, losses, draws, self.baseline_elo
                     )
                     self.writer.add_scalar("evaluation/relative_elo", self.elo, i + 1)
-
-                if win_rate > 0.55:
-                    print(f" [Episode {i}] Baseline updated: {win_rate}")
-                    self.best_win_rate = win_rate
-                    self.best_model.load_state_dict(self.model.state_dict())
-                    torch.save(
-                        self.best_model.state_dict(),
-                        f"{self.checkpoint_dir}/best_model.pth",
+                else:
+                    self.elo, self.best_elo = compute_ELO_rating(
+                        wins, losses, draws, self.elo, self.best_elo
                     )
-                    self.best_model_evaluator = ModelEvaluator(
-                        self.best_model, self.device
-                    )
-                    self.best_agent = Agent(
-                        evaluator=self.best_model_evaluator,
-                        tau=0,
-                        c_puct=self.agent.mcts.c_puct,
-                        n_simulations=self.agent.mcts.n_simulations,
-                    )
+                    self.writer.add_scalar("evaluation/elo", self.elo, i + 1)
+                    self.writer.add_scalar("evaluation/best_elo", self.best_elo, i + 1)
+                    if win_rate > 0.55:
+                        print(f" [Episode {i}] Baseline updated: {win_rate}")
+                        self.best_win_rate = win_rate
+                        self.best_model.load_state_dict(self.model.state_dict())
+                        torch.save(
+                            self.best_model.state_dict(),
+                            f"{self.checkpoint_dir}/best_model.pth",
+                        )
+                        self.best_model_evaluator = ModelEvaluator(
+                            self.best_model, self.device
+                        )
+                        self.best_agent = Agent(
+                            evaluator=self.best_model_evaluator,
+                            tau=0,
+                            c_puct=self.agent.mcts.c_puct,
+                            n_simulations=self.agent.mcts.n_simulations,
+                        )
 
     def evaluate(self, n_evals: int = 40):
         wins, losses, draws = 0, 0, 0
