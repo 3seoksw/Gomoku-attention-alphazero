@@ -60,7 +60,7 @@ class PatternCrossAttn(nn.Module):
 
         kv = self.pattern_proj(self.masks)  # [28, 128]
         kv = kv.unsqueeze(0).expand(batch_size, -1, -1)  # [B, 28, 128]
-        kv = kv * self.pattern_weights.unsqueeze(-1)
+        # kv = kv * self.pattern_weights.unsqueeze(-1)
 
         # attn_weights.shape  [B, 25, 28]
         mha, attn_weights = self.mha(query=query, key=kv, value=kv)
