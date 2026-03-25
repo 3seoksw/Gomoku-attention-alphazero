@@ -10,12 +10,17 @@ class PatchEmbedding(nn.Module):
         super().__init__()
         self.patch_size = patch_size
         self.patchify = nn.Unfold(patch_size, stride=1)
-        self.proj = nn.Linear(n_dim * patch_size * patch_size, n_dim)
+        # self.proj = nn.Linear(n_dim * patch_size * patch_size, n_dim)
+        self.proj = nn.Sequential(
+            nn.Linear(n_dim * patch_size * patch_size, n_dim * 2),
+            nn.ReLU(),
+            nn.Linear(n_dim * 2, n_dim),
+        )
 
     def forward(self, x):
         # x: [B, 128, 9, 9]
         patches = self.patchify(x).transpose(1, 2)  # [B, patch^2, patch^2 * n_dim]
-        proj = self.proj(patches)
+        proj = self.proj(patches)  # [B, patch^2, n_dim]
         return proj
 
 
@@ -51,6 +56,12 @@ class PatternCrossAttn(nn.Module):
             batch_first=True,
         )
         self.norm = nn.LayerNorm(n_dim)
+        self.linear = nn.Sequential(
+            nn.Linear(n_dim, n_dim * 2),
+            nn.ReLU(),
+            nn.Linear(n_dim * 2, n_dim),
+        )
+        self.norm2 = nn.LayerNorm(n_dim)
 
     def forward(self, x: torch.Tensor):
         # x: patches [B, 25, 25 * 128]
@@ -65,6 +76,7 @@ class PatternCrossAttn(nn.Module):
         # attn_weights.shape  [B, 25, 28]
         mha, attn_weights = self.mha(query=query, key=kv, value=kv)
         mha = self.norm(query + mha)  # [B, 25, 128]
+        mha = self.norm2(mha + self.linear(mha))
         return mha, attn_weights
 
 

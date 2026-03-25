@@ -15,7 +15,9 @@ def main():
     print(f" {device} loaded\n")
 
     model = PolicyValueModel()
-    model = AttnPolicyValue(n_blocks=1)
+    print(sum(p.numel() for p in model.parameters() if p.requires_grad))
+    model = AttnPolicyValue(n_blocks=0)
+    print(sum(p.numel() for p in model.parameters() if p.requires_grad))
 
     time = datetime.now().strftime("%Y%m%d_%H%M%S")
     trainer = Trainer(
@@ -26,7 +28,6 @@ def main():
         log_dir=f"runs/{time}",
         log_every=10,
         eval_every=50,
-        baseline_dir="runs/alphazero/best_model.pth",
     )
     trainer.fit(n_episodes=5000, n_evals=40, verbose=True)
 

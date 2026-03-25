@@ -33,7 +33,7 @@ class Trainer:
         log_dir: str = "runs",
         log_every: int = 20,
         eval_every: int = 100,
-        baseline_dir: str = "runs/alphazero/best_model.pth",
+        baseline_dir: str = "runs/AlphaZero/checkpoints_AlphaZero/best_model.pth",
     ):
         self.device = device
         self.board = Board(board_size, n_in_a_row=n_in_a_row)
