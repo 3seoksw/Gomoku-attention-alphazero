@@ -44,8 +44,8 @@ class PatternCrossAttn(nn.Module):
         # Key & Value
         self.pattern_proj = nn.Sequential(
             nn.Linear(self.n_patches, n_dim),
-            nn.ReLU(),
-            nn.Linear(n_dim, n_dim),
+            # nn.ReLU(),
+            # nn.Linear(n_dim, n_dim),
         )
         self.pattern_weights = nn.Parameter(torch.ones(self.n_patterns))
 

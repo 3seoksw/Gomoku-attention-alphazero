@@ -54,7 +54,7 @@ class Trainer:
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=lr, weight_decay=l2_norm
         )
-        self.scheduler = MultiStepLR(self.optimizer, milestones=[2000, 4000], gamma=0.3)
+        self.scheduler = MultiStepLR(self.optimizer, milestones=[2000, 4000], gamma=0.5)
 
         self.model_evaluator = ModelEvaluator(self.model, device)
         self.agent = Agent(
