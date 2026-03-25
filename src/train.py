@@ -16,7 +16,7 @@ def main():
 
     model = PolicyValueModel()
     print(sum(p.numel() for p in model.parameters() if p.requires_grad))
-    model = AttnPolicyValue(n_blocks=0)
+    model = AttnPolicyValue()
     print(sum(p.numel() for p in model.parameters() if p.requires_grad))
 
     time = datetime.now().strftime("%Y%m%d_%H%M%S")
