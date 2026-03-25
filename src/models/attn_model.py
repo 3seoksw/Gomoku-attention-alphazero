@@ -6,29 +6,21 @@ from models.policy_value_model import PolicyValueHeads
 
 
 class PatchEmbedding(nn.Module):
-    def __init__(self, patch_size: int, shared_proj: nn.Linear):
+    def __init__(self, n_channels: int, patch_size: int, n_dim: int):
         super().__init__()
         self.patch_size = patch_size
         self.patchify = nn.Unfold(patch_size, stride=1)
-        self.shared_proj = shared_proj  # Linear(n_patches, n_dim)
+        self.proj = nn.Linear(n_channels * patch_size**2, n_dim)
 
     def forward(self, x: torch.Tensor):
         # x: [B, n_channels, 9, 9]
-        batch_size = x.shape[0]
-        n_patches = self.patch_size**2
-
-        patches = self.patchify(x).transpose(1, 2)  # [B, 25, n_channels * 25]
-        patches = patches.view(
-            batch_size, -1, x.shape[1], n_patches
-        )  # [B, 25, n_channels, 25]
-        patches = patches.mean(dim=2)  # [B, 25, 25] — avg over channels
-        return self.shared_proj(patches)  # [B, 25, n_dim]
+        patches = self.patchify(x).transpose(1, 2)  # [B, 25, n_channels*25]
+        return self.proj(patches)  # [B, 25, n_dim]
 
 
 class PatternCrossAttn(nn.Module):
     def __init__(
         self,
-        shared_proj: nn.Linear,
         n_dim: int = 128,
         n_in_a_row: int = 5,
         n_heads: int = 4,
@@ -40,9 +32,7 @@ class PatternCrossAttn(nn.Module):
         self.n_dim = n_dim
 
         self.pos_embed = nn.Parameter(torch.randn(1, self.n_patches, n_dim))
-        self.shared_proj = (
-            shared_proj  # same Linear(n_patches, n_dim) as PatchEmbedding
-        )
+        self.pattern_proj = nn.Linear(self.n_patches, n_dim)
 
         # Cross Attention
         self.mha = nn.MultiheadAttention(n_dim, n_heads, batch_first=True)
@@ -59,7 +49,7 @@ class PatternCrossAttn(nn.Module):
         batch_size = x.shape[0]
 
         query = x + self.pos_embed  # [B, 25, n_dim]
-        kv = self.shared_proj(self.masks)  # [28, n_dim]
+        kv = self.pattern_proj(self.masks)  # [28, n_dim]
         kv = kv.unsqueeze(0).expand(batch_size, -1, -1)  # [B, 28, n_dim]
 
         # attn_weights: [B, 25, 28]
@@ -82,11 +72,8 @@ class AttnPolicyValue(BaseModel):
         self.n_dim = n_dim
         self.n = n_in_a_row
 
-        n_patches = n_in_a_row**2
-        shared_proj = nn.Linear(n_patches, n_dim)
-
-        self.patch_emb = PatchEmbedding(n_in_a_row, shared_proj)
-        self.pattern_xattn = PatternCrossAttn(shared_proj, n_dim, n_in_a_row, n_heads)
+        self.patch_emb = PatchEmbedding(n_channels, n_in_a_row, n_dim)
+        self.pattern_xattn = PatternCrossAttn(n_dim, n_in_a_row, n_heads)
         self.policy_value = PolicyValueHeads(board_size, n_dim)
 
     def forward(
