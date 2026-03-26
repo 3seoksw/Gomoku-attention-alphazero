@@ -54,7 +54,7 @@ class PatternCrossAttn(nn.Module):
 
         # attn_weights: [B, 25, 28]
         mha_out, attn_weights = self.mha(query=query, key=kv, value=kv)
-        mha_out = self.norm(query + mha_out)
+        mha_out = self.norm(mha_out)
         mha_out = self.norm2(mha_out + self.linear(mha_out))
         return mha_out, attn_weights
 
