@@ -248,6 +248,12 @@ class Trainer:
                 print(f"    W_{wins}  L_{losses}  D_{draws} |")
                 print(f"    Win Rate {win_rate:.2f} |")
 
+                if win_rate > 0.55:
+                    self.best_model.load_state_dict(self.model.state_dict())
+                    torch.save(
+                        self.best_model.state_dict(),
+                        f"{self.checkpoint_dir}/best_model.pth",
+                    )
                 if self.eval_mode == "baseline":
                     self.elo = compute_relative_ELO_rating(
                         wins, losses, draws, self.baseline_elo
@@ -262,11 +268,6 @@ class Trainer:
                     if win_rate > 0.55:
                         print(f" [Episode {i}] Baseline updated: {win_rate}")
                         self.best_win_rate = win_rate
-                        self.best_model.load_state_dict(self.model.state_dict())
-                        torch.save(
-                            self.best_model.state_dict(),
-                            f"{self.checkpoint_dir}/best_model.pth",
-                        )
                         self.best_model_evaluator = ModelEvaluator(
                             self.best_model, self.device
                         )
