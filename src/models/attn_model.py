@@ -32,7 +32,6 @@ class PatternCrossAttn(nn.Module):
         self.n_dim = n_dim
 
         self.pos_embed = nn.Parameter(torch.randn(1, self.n_patches, n_dim))
-        self.query_proj = nn.Linear(n_dim, n_dim)
         self.pattern_proj = nn.Linear(self.n_patches, n_dim)
 
         # Cross Attention
@@ -49,7 +48,7 @@ class PatternCrossAttn(nn.Module):
         # x: [B, 25, n_dim] from PatchEmbedding
         batch_size = x.shape[0]
 
-        query = self.query_proj(x) + self.pos_embed  # [B, 25, n_dim]
+        query = x + self.pos_embed  # [B, 25, n_dim]
         kv = self.pattern_proj(self.masks)  # [28, n_dim]
         kv = kv.unsqueeze(0).expand(batch_size, -1, -1)  # [B, 28, n_dim]
 
